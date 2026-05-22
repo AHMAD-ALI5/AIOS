@@ -1,0 +1,1 @@
+{"id": "sd_001", "objective": "Write a Python implementation of a thread-safe LRU cache with configurable capacity, including unit tests and docstrings.", "domain": "SD", "difficulty": "easy"}

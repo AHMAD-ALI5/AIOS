@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — NEVER COMMIT
+.env
+*.pem
+*.key
+secrets/
+
+# Logs
+logs/
+*.log
+
+# Data (large files)
+data/ground_truth/
+*.pkl
+*.parquet
+*.h5
+
+# Model weights
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+
+# Docker
+docker-compose.override.yml
+
+# ChromaDB local
+chroma_data/
+
+# Coverage reports
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Build artifacts
+*.zip
+*.tar.gz

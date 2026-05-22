@@ -1,0 +1,80 @@
+# AIOS Configuration
+# Copy .env.example to .env and fill in your API keys before running
+
+aios:
+  version: "0.1.0"
+  environment: "development"  # development | staging | production
+  log_level: "INFO"
+
+gateway:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+  rate_limit_per_minute: 60
+  task_timeout_seconds: 600
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8000"
+
+scheduler:
+  alpha: 0.3            # Execution cost weight
+  beta: 0.5             # Critical path weight
+  gamma: 0.2            # Memory hit score weight
+  max_retries: 3
+  tick_interval_ms: 100
+  agent_pool_size: 8
+  max_concurrent_tasks: 16
+
+memory:
+  stm_ttl_seconds: 3600
+  ltm_staleness_threshold: 86400
+  eviction_penalty: 0.1
+  retrieval_top_k: 5
+  embedding_dim: 1536
+  consolidation_interval_seconds: 300
+  promotion_threshold: 3   # min access count before STM→LTM promotion
+  stm_max_entries: 10000
+  ltm_collection_name: "aios_ltm"
+
+llm:
+  default_model: "gpt-4o-2024-05-13"
+  planner_model: "gpt-4o-2024-05-13"
+  judge_model: "gpt-4o-2024-05-13"
+  fallback_model: "gpt-4o-mini"
+  temperature: 0.2
+  max_tokens: 4096
+  max_plan_retries: 3
+  embedding_model: "text-embedding-3-small"
+  embedding_batch_size: 32
+  request_timeout: 60
+
+redis:
+  host: "localhost"
+  port: 6379
+  db: 0
+  password: null          # Set via REDIS_PASSWORD env var
+  max_connections: 50
+
+chromadb:
+  host: "localhost"
+  port: 8001
+  collection: "aios_ltm"
+
+monitoring:
+  websocket_port: 8001
+  otel_endpoint: "http://localhost:4317"
+  metrics_interval_seconds: 10
+  enable_tracing: true
+  enable_metrics: true
+
+agents:
+  research:
+    max_sources: 10
+    search_timeout: 30
+  code:
+    execution_timeout: 30
+    max_output_size_kb: 512
+  writer:
+    max_output_tokens: 2048
+  analysis:
+    max_rows: 50000

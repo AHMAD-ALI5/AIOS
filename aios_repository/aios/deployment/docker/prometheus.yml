@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "aios-monitor"
+
+scrape_configs:
+  - job_name: "aios-gateway"
+    static_configs:
+      - targets: ["aios-gateway:8000"]
+    metrics_path: /v1/metrics
+
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis:6379"]
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

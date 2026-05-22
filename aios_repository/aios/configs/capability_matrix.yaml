@@ -1,0 +1,87 @@
+# Agent Capability Matrix
+# Maps agent types to their task categories and keywords
+# Used by the Planner to assign agent_type to subtasks
+
+agents:
+  research:
+    description: "Literature retrieval, web search, paper summarization, fact gathering, source synthesis"
+    keywords:
+      - research
+      - search
+      - literature
+      - find
+      - gather
+      - retrieve
+      - summarize papers
+      - survey
+      - review
+      - investigate
+    max_instances: 4
+    avg_cost_seconds: 40
+
+  code:
+    description: "Software development, debugging, code review, test writing, documentation, refactoring"
+    keywords:
+      - code
+      - implement
+      - write function
+      - write class
+      - debug
+      - fix
+      - test
+      - refactor
+      - program
+      - develop
+      - script
+    max_instances: 4
+    avg_cost_seconds: 45
+
+  writer:
+    description: "Structured writing, report generation, summarization, editing, content formatting"
+    keywords:
+      - write
+      - draft
+      - report
+      - document
+      - essay
+      - article
+      - summarize
+      - edit
+      - format
+      - compose
+    max_instances: 2
+    avg_cost_seconds: 35
+
+  analysis:
+    description: "Data analysis, statistical computation, hypothesis testing, visualization description, comparison tables"
+    keywords:
+      - analyze
+      - compare
+      - statistics
+      - data
+      - table
+      - evaluate
+      - measure
+      - quantify
+      - assess
+      - benchmark
+    max_instances: 2
+    avg_cost_seconds: 30
+
+  collector:
+    description: "Result aggregation, output formatting, final report assembly"
+    keywords:
+      - aggregate
+      - collect
+      - combine
+      - merge
+      - final
+      - assemble
+      - compile
+    max_instances: 1
+    avg_cost_seconds: 15
+
+task_categories:
+  RS: "research_synthesis"
+  SD: "software_development"
+  ADS: "analytical_decision_support"

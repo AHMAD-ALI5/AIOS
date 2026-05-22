@@ -34,9 +34,12 @@ def compute_critical_path(tasks: list[TaskSpec]) -> dict[str, float]:
         Dict mapping task_id → critical path length to terminal node.
     """
     task_map = {t.id: t for t in tasks}
+    task_ids = set(task_map.keys())
     successors: dict[str, list[str]] = {t.id: [] for t in tasks}
     for task in tasks:
         for dep in task.dependencies:
+            if dep not in task_ids:
+                raise ValueError(f"Task '{task.id}' has unknown dependency '{dep}'")
             successors[dep].append(task.id)
 
     # Reverse topological order (process terminal nodes first)

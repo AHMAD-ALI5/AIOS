@@ -1,0 +1,148 @@
+---
+# AIOS Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aios-gateway
+  namespace: aios
+  labels:
+    app: aios-gateway
+    version: "0.1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aios-gateway
+  template:
+    metadata:
+      labels:
+        app: aios-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/v1/metrics"
+    spec:
+      serviceAccountName: aios-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: gateway
+          image: aios/gateway:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aios-secrets
+                  key: openai-api-key
+            - name: REDIS_HOST
+              value: "redis-service"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: CHROMADB_HOST
+              value: "chromadb-service"
+            - name: CHROMADB_PORT
+              value: "8000"
+            - name: AIOS_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/configs
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: aios-config
+---
+# AIOS Gateway Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: aios-gateway-service
+  namespace: aios
+spec:
+  selector:
+    app: aios-gateway
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http
+  type: ClusterIP
+---
+# HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: aios-gateway-hpa
+  namespace: aios
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: aios-gateway
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aios
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aios-sa
+  namespace: aios
+---
+# Secrets template (populate with actual values)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aios-secrets
+  namespace: aios
+type: Opaque
+stringData:
+  openai-api-key: "REPLACE_WITH_REAL_KEY"
+  anthropic-api-key: "REPLACE_WITH_REAL_KEY"
+  redis-password: ""

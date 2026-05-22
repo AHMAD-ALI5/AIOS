@@ -1,0 +1,1 @@
+{"id": "ads_001", "objective": "Analyze the computational complexity, memory requirements, and accuracy trade-offs between batch normalization, layer normalization, and group normalization for training deep neural networks. Produce a structured comparison.", "domain": "ADS", "difficulty": "medium"}
