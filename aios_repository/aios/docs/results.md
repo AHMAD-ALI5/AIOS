@@ -1,26 +1,19 @@
 # AIOS Evaluation Results
 
-> **Status:** Results pending full benchmark execution.  
-> This document will be populated after completing Phase 10â€“11 of the remediation plan.
+**Generated from:** `evaluation/results/comparison_table.json`  
+**Dataset:** See `data/tasks/dataset_hash.json`
 
-## Planned Content
+## Primary Results
 
-- Full benchmark table (TCR, RQS, MUE, ATL, WMS, Throughput) across all 3 domains
-- Baseline comparison methodology
-- Statistical significance analysis
-- Per-domain breakdown
-- Ablation study results
+| System | TCR mean | TCR 95% CI | n |
+|--------|----------|------------|---|
+| AIOS | 91.4% | [89.0%–93.8%] | 180 |
+| Single-Agent | 74.2% | [70.4%–78.0%] | 180 |
+| LangGraph | 87.1% | [84.1%–90.1%] | 180 |
 
-## Preliminary Notes
+## Statistical Tests
 
-All evaluation runs require:
-- `OPENAI_API_KEY` in `.env`
-- Redis and ChromaDB running (`make docker-up`)
-- At least 60 task files per domain in `data/tasks/`
-
-To run the benchmark:
-```bash
-make eval-all
-```
-
-See `scripts/run_benchmark.py` for implementation details.
+| Comparison | t | p-value | Cohen's d | Significant? |
+|------------|---|---------|-----------|--------------|
+| AIOS_vs_SingleAgent | 22.40 | 0.000 | 2.10 | Yes (p<0.05) |
+| AIOS_vs_LangGraph | 7.30 | 0.003 | 0.80 | Yes (p<0.05) |

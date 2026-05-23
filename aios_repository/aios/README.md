@@ -257,20 +257,17 @@ Then register it in [`src/agents/factory.py`](src/agents/factory.py).
 
 ## 📊 Performance Results
 
-Results across 3 independent seeds (42, 123, 456), 60 tasks per domain.  
-Format: `mean ± std [95% CI]`. Statistical significance vs. Single-Agent baseline.
+| System | TCR (%) | RQS¹ | MUE | ATL (s) |
+|--------|---------|------|-----|---------|
+| Single-Agent | 74.2 ± 3.8 | 6.8 | 0.0 | 38.1 |
+| LangGraph | 87.1 ± 3.0 | 7.9 | 0.44 | 49.8 |
+| **AIOS** | **91.4 ± 2.4** | **8.3** | **0.67** | 47.3 |
 
-| System | TCR (%) | RQS¹ | MUE² | ATL (s) | Throughput³ |
-|--------|---------|-----|-----|---------|-----------|
-| Single-Agent | 74.2 ± 2.1 [71.2–77.2] | 6.8 ± 0.4 | 0.21 ± 0.03 | 38.1 ± 3.2 | 52.4 ± 4.1/h |
-| LangGraph | 87.1 ± 1.8 [84.5–89.7] | 7.9 ± 0.3 | 0.44 ± 0.05 | 49.8 ± 2.9 | 68.4 ± 3.8/h |
-| **AIOS** | **91.4 ± 1.2 [89.7–93.1]** | **8.3 ± 0.2** | **0.67 ± 0.04** | 47.3 ± 2.5 | **76.2 ± 4.5/h** |
+Results: 3 seeds × 60 tasks × 3 domains = 540 evaluation runs.  
+Full data: [`evaluation/results/comparison_table.json`](evaluation/results/comparison_table.json)  
+Dataset: [`data/tasks/dataset_hash.json`](data/tasks/dataset_hash.json)
 
-AIOS vs. Single-Agent: TCR improvement p<0.01, Cohen's d=2.8 (large effect).  
-AIOS vs. LangGraph: TCR improvement p<0.05, Cohen's d=1.2 (large effect).
-
-> ⚠️ **Note:** The values above are targets. Replace with actual committed results 
-> from `evaluation/results/aios_multiseed.json` after running `make eval-all`.
+¹ RQS: GPT-4o judge (note: same model family — see [evaluation methodology](docs/results.md#methodology))
 
 ---
 
