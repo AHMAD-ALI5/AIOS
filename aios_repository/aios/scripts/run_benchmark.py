@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import typer
 from rich.console import Console
 from rich.table import Table
+import random
 
 app = typer.Typer()
 console = Console()
@@ -34,21 +35,92 @@ def main(
         help="Judge model. Use different family from system model to reduce self-evaluation bias. "
              "E.g., if system uses gpt-4o, set to claude-3-opus-20240229"
     ),
+    seeds: str = typer.Option(
+        "42,123,456",
+        help="Comma-separated seeds for multi-seed evaluation (min 3 for publication)"
+    ),
+    temperature: float = typer.Option(0.0, help="LLM sampling temperature. Default 0.0 for maximum reproducibility in evaluation."),
     output: str = typer.Option("evaluation/results/benchmark_results.json", help="Output file"),
 ):
     """Run AIOS evaluation benchmark."""
-    asyncio.run(_run(domain, limit, enable_rqs, judge_model, output))
+    seed_list = [int(s.strip()) for s in seeds.split(",")]
+    asyncio.run(_run_multiseed(domain, limit, enable_rqs, judge_model, seed_list, temperature, output))
 
 
-async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, output: str):
+async def _run_multiseed(domain: str, limit: int, enable_rqs: bool, judge_model: str, seeds: list[int], temperature: float, output: str):
+    import os
+    all_seed_results = {}  # seed → list of BenchmarkResult dicts
+
+    for seed in seeds:
+        console.print(f"\n[bold cyan]Seed {seed}[/bold cyan]")
+        seed_output = output.replace(".json", f"_seed{seed}.json")
+        await _run(domain, limit, enable_rqs, judge_model, seed, temperature, seed_output)
+        with open(seed_output) as f:
+            data = json.load(f)
+        all_seed_results[seed] = data["results"]
+
+    # Aggregate across seeds
+    _aggregate_and_save(all_seed_results, seeds, output)
+
+
+def _aggregate_and_save(all_seed_results: dict, seeds: list[int], output: str):
+    from evaluation.statistical_analysis import MetricStats
+    # Collect per-domain TCR/ATL/MUE values across seeds
+    domains = set()
+    for seed_results in all_seed_results.values():
+        for r in seed_results:
+            domains.add(r["domain"])
+
+    aggregated = []
+    for domain in sorted(domains):
+        tcr_vals, atl_vals, mue_vals, rqs_vals = [], [], [], []
+        for seed, results in all_seed_results.items():
+            for r in results:
+                if r["domain"] == domain:
+                    tcr_vals.append(r["TCR (%)"] / 100)
+                    atl_vals.append(r["ATL (s)"])
+                    mue_vals.append(r["MUE"])
+                    rqs_vals.append(r.get("RQS", 0.0))
+
+        tcr_stats = MetricStats("TCR", tcr_vals)
+        aggregated.append({
+            "domain": domain,
+            "n_seeds": len(seeds),
+            "TCR_mean": round(tcr_stats.mean * 100, 1),
+            "TCR_std": round(tcr_stats.std * 100, 1),
+            "TCR_ci95": [round(tcr_stats.ci_lower * 100, 1), round(tcr_stats.ci_upper * 100, 1)],
+            "ATL_mean": round(MetricStats("ATL", atl_vals).mean, 1),
+            "ATL_std": round(MetricStats("ATL", atl_vals).std, 1),
+            "MUE_mean": round(MetricStats("MUE", mue_vals).mean, 3),
+            "MUE_std": round(MetricStats("MUE", mue_vals).std, 3),
+        })
+
+    final = {
+        "metadata": {"seeds": seeds, "n_seeds": len(seeds)},
+        "aggregated_results": aggregated,
+        "per_seed_results": {str(k): v for k, v in all_seed_results.items()},
+    }
+    with open(output, "w") as f:
+        json.dump(final, f, indent=2)
+    console.print(f"\n[green]Aggregated results ({len(seeds)} seeds) saved to {output}[/green]")
+
+
+async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, seed: int, temperature: float, output: str):
     from src.logging_config import setup_logging, get_logger
     from src.models import TaskDomain
     from src.runtime import AIOSRuntime
     from evaluation.metrics import BenchmarkRunner, BenchmarkResult
     from src.config import get_config
+    import os
+
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
     
     logger = get_logger("benchmark")
     cfg = get_config()
+    cfg.llm.temperature = temperature
+    console.print(f"[dim]Seed: {seed} | Temperature: {temperature}[/dim]")
+    
     if judge_model != cfg.llm.judge_model:
         cfg.llm.judge_model = judge_model
         logger.info(f"Judge model overridden to: {judge_model}")
@@ -129,8 +201,20 @@ async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, outp
 
         # Save results
         Path(output).parent.mkdir(parents=True, exist_ok=True)
+        output_payload = {
+            "metadata": {
+                "seed": seed,
+                "temperature": temperature,
+                "judge_model": judge_model,
+                "system": "AIOS",
+                "version": "0.1.0",
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "python_version": sys.version,
+            },
+            "results": all_results,
+        }
         with open(output, "w") as f:
-            json.dump(all_results, f, indent=2)
+            json.dump(output_payload, f, indent=2)
         console.print(f"\n[green]Results saved to {output}[/green]")
 
 
