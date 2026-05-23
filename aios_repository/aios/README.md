@@ -53,6 +53,27 @@ See [`docs/architecture.md`](docs/architecture.md) for the full architecture gui
 - Docker and Docker Compose
 - OpenAI API key (or Anthropic)
 
+## 🔒 Environment Setup (Reproducible)
+
+All dependencies are pinned in `requirements-lock.txt` for exact reproduction.
+
+```bash
+# Create isolated environment (recommended)
+python -m venv venv
+source venv/Scripts/activate      # Git Bash / Windows
+# source venv/bin/activate         # Linux/macOS
+
+# Install exact locked dependencies
+pip install -r requirements-lock.txt
+pip install -e . --no-deps
+
+# Verify environment matches lockfile
+make verify-env
+```
+
+> **Do not** use `pip install -e ".[dev]"` for reproducibility-critical work — 
+> this resolves `>=` bounds non-deterministically.
+
 ### 2. Clone and install
 
 ```bash

@@ -45,8 +45,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install dependencies
-        run: pip install -e ".[dev]"
+      - name: Install locked dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-lock.txt
+          pip install -e . --no-deps
 
       - name: Run smoke test script
         run: python scripts/smoke_test.py
@@ -77,8 +80,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install dependencies
-        run: pip install -e ".[dev]"
+      - name: Install locked dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-lock.txt
+          pip install -e . --no-deps
 
       - name: Run integration tests (mocked backends)
         run: pytest tests/integration/ -v --tb=short
@@ -97,8 +103,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install dependencies
-        run: pip install -e ".[dev]"
+      - name: Install locked dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-lock.txt
+          pip install -e . --no-deps
 
       - name: Run E2E smoke test (mocked LLM)
         run: pytest tests/e2e/ -v --tb=short -s

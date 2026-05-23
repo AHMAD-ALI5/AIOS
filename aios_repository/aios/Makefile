@@ -10,6 +10,22 @@ help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+# ─── Environment ──────────────────────────────────────────────────────────────
+
+env:  ## Create virtualenv and install locked dependencies
+	python -m venv venv
+	source venv/Scripts/activate && pip install --upgrade pip
+	source venv/Scripts/activate && pip install -r requirements-lock.txt
+	@echo "Environment ready. Activate with: source venv/Scripts/activate"
+
+lock-deps:  ## Regenerate requirements-lock.txt from current environment
+	pip freeze > requirements-lock.txt
+	@echo "Lock file updated. Commit requirements-lock.txt."
+
+verify-env:  ## Verify current environment matches lockfile
+	pip freeze > /tmp/current_env.txt
+	diff requirements-lock.txt /tmp/current_env.txt && echo "Environment matches lockfile" || echo "MISMATCH — run make env"
+
 # ─── Setup ────────────────────────────────────────────────────────────────────
 
 install:  ## Install production dependencies
