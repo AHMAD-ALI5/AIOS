@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AIOS Task File",
+  "type": "object",
+  "required": ["id", "objective", "domain", "difficulty"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z]+_[0-9]{3}$"},
+    "objective": {"type": "string", "minLength": 20, "maxLength": 500},
+    "domain": {"type": "string", "enum": ["RS", "SD", "ADS"]},
+    "difficulty": {"type": "string", "enum": ["easy", "medium", "hard"]},
+    "expected_agent_types": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["research", "code", "writer", "analysis", "collector"]}
+    },
+    "reference_answer_keywords": {
+      "type": "array", "items": {"type": "string"}
+    }
+  },
+  "additionalProperties": false
+}

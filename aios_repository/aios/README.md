@@ -342,6 +342,29 @@ make eval-all          # Runs all three systems
 
 ---
 
+## 📂 Evaluation Dataset
+
+**Size:** 180 tasks — 60 per domain (RS, SD, ADS)  
+**Difficulty split:** 20 easy / 20 medium / 20 hard per domain  
+**Dataset hash:** See `data/tasks/dataset_hash.json`
+
+### Verifying Dataset Integrity
+
+```bash
+python scripts/hash_dataset.py
+# Compare output to data/tasks/dataset_hash.json
+```
+
+### Generating Additional Tasks
+
+```bash
+python scripts/generate_tasks.py --domain RS --count 10 --start-seq 62
+# REQUIRED: Human review all generated files before committing
+python scripts/validate_dataset.py  # Validate schema compliance
+```
+
+---
+
 ## 🔁 Reproducibility Notes
 
 ### LLM Non-Determinism

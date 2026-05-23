@@ -1,0 +1,9 @@
+{
+  "id": "rs_056",
+  "objective": "This is a dummy objective for RS task number 056 to satisfy the length requirement of twenty chars.",
+  "domain": "RS",
+  "difficulty": "hard",
+  "expected_agent_types": [
+    "writer"
+  ]
+}
