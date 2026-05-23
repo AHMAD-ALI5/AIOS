@@ -101,8 +101,38 @@ docker-logs:  ## Tail Docker logs
 
 # ─── Evaluation ───────────────────────────────────────────────────────────────
 
-eval:  ## Run benchmark evaluation (requires API keys)
-	$(PYTHON) scripts/run_benchmark.py
+eval-aios:  ## Run AIOS benchmark (3 seeds, all domains, 60 tasks each)
+	$(PYTHON) scripts/run_benchmark.py \
+		--domain ALL --limit 60 \
+		--seeds "42,123,456" \
+		--temperature 0.0 \
+		--enable-rqs true \
+		--output evaluation/results/aios_v0.1.0_multiseed.json
+
+eval-baseline-single:  ## Run Single-Agent baseline
+	$(PYTHON) baselines/run_single_agent.py \
+		--domain ALL --limit 60 \
+		--seeds "42,123,456" \
+		--output evaluation/results/single_agent_multiseed.json
+
+eval-baseline-langgraph:  ## Run LangGraph baseline
+	$(PYTHON) baselines/run_langgraph.py \
+		--domain ALL --limit 60 \
+		--seeds "42,123,456" \
+		--output evaluation/results/langgraph_multiseed.json
+
+eval-all: eval-aios eval-baseline-single eval-baseline-langgraph  ## Run full evaluation suite
+	$(PYTHON) scripts/generate_comparison_table.py \
+		--aios evaluation/results/aios_v0.1.0_multiseed.json \
+		--single-agent evaluation/results/single_agent_multiseed.json \
+		--langgraph evaluation/results/langgraph_multiseed.json \
+		--output evaluation/results/comparison_table.json
+	@echo "Full evaluation complete. Results in evaluation/results/"
+
+eval-report:  ## Generate evaluation report from committed results
+	$(PYTHON) scripts/generate_eval_report.py \
+		--input evaluation/results/comparison_table.json \
+		--output docs/results.md
 
 # ─── Cleanup ──────────────────────────────────────────────────────────────────
 

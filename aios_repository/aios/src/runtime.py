@@ -44,6 +44,9 @@ class AIOSRuntime:
         self.memory = MemoryManager(self.config)
         self.planner = PlannerAgent(self.config)
         self.scheduler = Scheduler(self.config, dispatch_fn=self._dispatch_task)
+        # NOTE: self.message_bus is instantiated for future multi-node Pub/Sub dispatch.
+        # Current single-node dispatch uses direct asyncio.create_task() for lower latency.
+        # See docs/architecture.md "Dispatch Modes" for migration path.
         self.message_bus = MessageBus(self.config)
         self.collector = CollectorAgent(config=self.config, memory=self.memory)
         self._workflows: dict[str, dict] = {}  # workflow_id → meta

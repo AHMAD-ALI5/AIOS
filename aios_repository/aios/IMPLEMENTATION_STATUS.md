@@ -180,7 +180,7 @@ Paper uses only OpenAI/Anthropic. LiteLLM integration is listed in requirements 
 |---|---|---|
 | Metrics not wired to Runtime/Scheduler | Medium | MetricsCollector exists but `increment()` not called at task lifecycle events |
 | WebSocket route missing | Medium | DashboardBroadcaster works but no gateway endpoint exposes it |
-| No request authentication | High | Gateway has no API key or JWT validation |
+| No request authentication | High | FIXED: Gateway has API key validation middleware |
 | Code sandbox not implemented | High | CodeAgent validates Python syntax but does not sandbox execution |
 | No prompt injection defense | High | User objectives passed to LLM without sanitisation |
 | Config cache not invalidated on test teardown | Low | `get_config()` is `@lru_cache`; tests that modify env vars may see stale config |
@@ -191,7 +191,7 @@ Paper uses only OpenAI/Anthropic. LiteLLM integration is listed in requirements 
 ## 📈 Recommended Next Steps
 
 ### Priority 1 (Production Blockers)
-1. **Add API authentication** — JWT or API key validation in gateway middleware
+1. ~~**Add API authentication**~~ — (Fixed in Phase 9)
 2. **Sandbox code execution** — Docker-in-Docker or `RestrictedPython` for CodeAgent
 3. **Wire metrics to lifecycle events** — 5 lines in `runtime.py` + `scheduler.py`
 4. **Add WebSocket route** — 10 lines in `gateway/app.py`
@@ -217,6 +217,6 @@ Paper uses only OpenAI/Anthropic. LiteLLM integration is listed in requirements 
 | Test Coverage | 6.5/10 | 62% coverage, 54 passing tests; real backend tests missing |
 | Scalability | 7.0/10 | Horizontal gateway scaling works; scheduler leader election not implemented |
 | Reliability | 6.5/10 | Retry logic implemented; graceful shutdown incomplete |
-| Security | 4.0/10 | No auth, no code sandbox, no prompt injection defense |
+| Security | 6.0/10 | API auth added; no code sandbox, no prompt injection defense |
 | Reproducibility | 8.0/10 | All logic deterministic; config-driven; full test suite passes without external deps |
-| **Overall** | **6.9/10** | Strong research prototype; 2–4 weeks of work from production-ready |
+| **Overall** | **7.1/10** | Strong research prototype; 2–4 weeks of work from production-ready |

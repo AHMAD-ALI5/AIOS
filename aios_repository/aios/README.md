@@ -285,6 +285,43 @@ AIOS vs. LangGraph: TCR improvement p<0.05, Cohen's d=1.2 (large effect).
 
 ---
 
+## 🧪 Running the Full Evaluation
+
+### Prerequisites
+
+- `OPENAI_API_KEY` in `.env`
+- Redis and ChromaDB running: `make docker-up`
+- ~$50–200 in API credits for the full 180-task suite
+
+### Full Evaluation (3 systems × 3 seeds × 60 tasks × 3 domains)
+
+```bash
+make eval-all
+```
+
+This produces:
+- `evaluation/results/aios_v0.1.0_multiseed.json`
+- `evaluation/results/single_agent_multiseed.json`  
+- `evaluation/results/langgraph_multiseed.json`
+- `evaluation/results/comparison_table.json`
+
+### Quick Evaluation (1 seed, 5 tasks per domain)
+
+```bash
+python scripts/run_benchmark.py \
+  --domain ALL --limit 5 \
+  --seeds "42" \
+  --output evaluation/results/quick_eval.json
+```
+
+### Verify Committed Results
+
+```bash
+python scripts/verify_results.py --registry evaluation/run_registry.json
+```
+
+---
+
 ## 🔁 Reproducibility Notes
 
 ### LLM Non-Determinism
@@ -314,6 +351,34 @@ python scripts/run_benchmark.py \
 ```
 
 Results will be within ±3% TCR of the committed artifacts due to LLM stochasticity.
+
+---
+
+## 🔐 Security Notes
+
+### API Authentication
+
+Set `AIOS_API_KEY` in `.env` to enable API key authentication:
+
+```bash
+AIOS_API_KEY=your-secret-key-here
+```
+
+All `/v1/` endpoints (except `/v1/health` and `/v1/metrics`) will require:
+```http
+X-API-Key: your-secret-key-here
+```
+
+### Code Execution Safety
+
+`CodeAgent` validates Python syntax but does **not** execute generated code.  
+Code execution would require a sandboxed environment (Docker-in-Docker or RestrictedPython).  
+Do not deploy `CodeAgent` in production without a code sandbox.
+
+### Prompt Injection
+
+User objectives are passed to the LLM without sanitization.  
+Do not expose the gateway publicly without input validation middleware.
 
 ---
 

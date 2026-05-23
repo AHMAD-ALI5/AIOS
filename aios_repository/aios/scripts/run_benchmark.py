@@ -16,10 +16,25 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import typer
-from rich.console import Console
-from rich.table import Table
 import random
+import hashlib
+import subprocess
+
+def _get_git_hash() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        return "unknown"
+
+def _hash_config(config_path: str = "configs/aios_config.yaml") -> str:
+    try:
+        with open(config_path, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()[:12]
+    except Exception:
+        return "unknown"
 
 app = typer.Typer()
 console = Console()
@@ -96,7 +111,13 @@ def _aggregate_and_save(all_seed_results: dict, seeds: list[int], output: str):
         })
 
     final = {
-        "metadata": {"seeds": seeds, "n_seeds": len(seeds)},
+        "metadata": {
+            "seeds": seeds,
+            "n_seeds": len(seeds),
+            "git_commit": _get_git_hash(),
+            "config_hash": _hash_config(),
+            "aios_config_path": "configs/aios_config.yaml"
+        },
         "aggregated_results": aggregated,
         "per_seed_results": {str(k): v for k, v in all_seed_results.items()},
     }
@@ -204,6 +225,9 @@ async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, seed
         output_payload = {
             "metadata": {
                 "seed": seed,
+                "git_commit": _get_git_hash(),
+                "config_hash": _hash_config(),
+                "aios_config_path": "configs/aios_config.yaml",
                 "temperature": temperature,
                 "judge_model": judge_model,
                 "system": "AIOS",

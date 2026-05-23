@@ -11,6 +11,8 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+import os
 
 from src.config import get_config
 from src.logging_config import get_logger, setup_logging
@@ -20,6 +22,26 @@ from src.runtime import AIOSRuntime
 
 logger = get_logger("gateway")
 _runtime: Optional[AIOSRuntime] = None
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    """Optional API key authentication. Enable by setting AIOS_API_KEY env var."""
+    
+    def __init__(self, app, api_key: str):
+        super().__init__(app)
+        self.api_key = api_key
+    
+    async def dispatch(self, request: Request, call_next):
+        # Skip auth for health check and metrics
+        if request.url.path in ("/v1/health", "/v1/metrics"):
+            return await call_next(request)
+        if self.api_key:
+            provided = request.headers.get("X-API-Key", "")
+            if provided != self.api_key:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Invalid or missing API key"}
+                )
+        return await call_next(request)
 
 
 @asynccontextmanager
@@ -55,6 +77,13 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    api_key = os.environ.get("AIOS_API_KEY", "")
+    if api_key:
+        app.add_middleware(APIKeyMiddleware, api_key=api_key)
+        logger.info("API key authentication enabled")
+    else:
+        logger.warning("AIOS_API_KEY not set — gateway is unauthenticated")
 
     # ---------- Routes ----------
 

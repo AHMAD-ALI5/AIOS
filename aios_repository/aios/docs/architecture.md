@@ -120,6 +120,29 @@ L_mem = -Σ MH(v_j) + λ · Σ 1[age(m) > τ]   λ=0.1, τ=86400s
 
 ---
 
+### Dispatch Modes
+
+AIOS supports two dispatch modes:
+
+**1. Direct Async Dispatch (current default)**
+```text
+Scheduler._tick() → asyncio.create_task(_dispatch_task(record))
+→ create_agent(type) → agent.execute(record)
+→ scheduler.on_task_completed()
+```
+Used for single-node deployments. Lower latency. `MessageBus` not used for dispatch.
+
+**2. Pub/Sub Dispatch (future: multi-node)**
+```text
+Scheduler._tick() → MessageBus.send_to_agent(type, message)
+→ Redis channel: aios.agent.{type}
+→ Remote agent worker subscribes → executes → publishes ACK
+→ Scheduler receives ACK via TOPIC_SCHEDULER_ACK
+```
+`MessageBus` infrastructure is implemented and tested. Wire-up is deferred to multi-region support.
+
+---
+
 ## Data Flow: Single Task Execution
 
 ```
