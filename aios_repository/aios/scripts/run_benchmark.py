@@ -27,19 +27,31 @@ console = Console()
 @app.command()
 def main(
     domain: str = typer.Option("RS", help="Domain: RS, SD, ADS, ALL"),
-    limit: int = typer.Option(5, help="Max tasks to evaluate per domain"),
-    enable_rqs: bool = typer.Option(False, help="Enable RQS scoring (requires API key)"),
+    limit: int = typer.Option(5, help="Max tasks per domain"),
+    enable_rqs: bool = typer.Option(False, help="Enable RQS scoring"),
+    judge_model: str = typer.Option(
+        "gpt-4o-2024-05-13",
+        help="Judge model. Use different family from system model to reduce self-evaluation bias. "
+             "E.g., if system uses gpt-4o, set to claude-3-opus-20240229"
+    ),
     output: str = typer.Option("evaluation/results/benchmark_results.json", help="Output file"),
 ):
     """Run AIOS evaluation benchmark."""
-    asyncio.run(_run(domain, limit, enable_rqs, output))
+    asyncio.run(_run(domain, limit, enable_rqs, judge_model, output))
 
 
-async def _run(domain: str, limit: int, enable_rqs: bool, output: str):
-    from src.logging_config import setup_logging
+async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, output: str):
+    from src.logging_config import setup_logging, get_logger
     from src.models import TaskDomain
     from src.runtime import AIOSRuntime
     from evaluation.metrics import BenchmarkRunner, BenchmarkResult
+    from src.config import get_config
+    
+    logger = get_logger("benchmark")
+    cfg = get_config()
+    if judge_model != cfg.llm.judge_model:
+        cfg.llm.judge_model = judge_model
+        logger.info(f"Judge model overridden to: {judge_model}")
 
     setup_logging(level="WARNING")
     runtime = AIOSRuntime()

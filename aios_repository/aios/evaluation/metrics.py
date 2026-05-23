@@ -120,8 +120,16 @@ class BenchmarkResult:
 class RQSJudge:
     """
     GPT-4o-based Response Quality Scorer.
-    Note: This is the paper's evaluation methodology.
-    For unbiased evaluation, replace with human annotators.
+
+    EVALUATION BIAS WARNING:
+    This judge uses the same model family (GPT-4o) as the system under evaluation.
+    For unbiased evaluation, use a different model family as judge
+    (e.g., Claude-3-Opus if AIOS uses GPT-4o, or human annotators).
+    Set judge_model in config to a different provider for publication.
+
+    Self-evaluation bias has been documented in:
+      - Zheng et al. (2023) "Judging LLM-as-a-Judge"
+      - Liu et al. (2023) "G-Eval"
     """
 
     def __init__(self, config: Optional[AIOSConfig] = None) -> None:
