@@ -322,6 +322,26 @@ python scripts/verify_results.py --registry evaluation/run_registry.json
 
 ---
 
+## 📐 Baselines
+
+Two baselines are included for fair comparison:
+
+### Single-Agent Baseline (`baselines/single_agent.py`)
+One GPT-4o call per objective. No task decomposition, no memory, no retry.
+
+### LangGraph Baseline (`baselines/langgraph_baseline.py`)
+Same planner and agent prompts as AIOS. Uses LangGraph StateGraph for execution.
+Isolates the contribution of AIOS's custom scheduler and memory system.
+
+```bash
+pip install langgraph  # LangGraph baseline only
+make eval-all          # Runs all three systems
+```
+
+**Fair Comparison Conditions:** All systems use identical task files, LLM model, temperature, and RQS judge.
+
+---
+
 ## 🔁 Reproducibility Notes
 
 ### LLM Non-Determinism
