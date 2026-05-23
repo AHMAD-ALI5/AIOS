@@ -127,6 +127,14 @@ class TestWorkflowEvalResult:
         r = self._make_result([True, True], [8.0, 8.0], [10.0, 30.0])
         assert abs(r.atl - 20.0) < 1e-9
 
-    def test_wms_single_task(self):
-        r = self._make_result([True], [8.0], [10.0])
+    def test_wms_all_complete(self):
+        r = self._make_result([True, True, True], [8.0, 9.0, 7.0], [10.0, 20.0, 15.0])
         assert r.wms == 1.0
+
+    def test_wms_partial(self):
+        r = self._make_result([True, False, True, False], [8.0, 0.0, 7.0, 0.0], [10.0, 5.0, 15.0, 3.0])
+        assert r.wms == 0.5
+
+    def test_wms_none_complete(self):
+        r = self._make_result([False, False], [0.0, 0.0], [0.0, 0.0])
+        assert r.wms == 0.0

@@ -74,6 +74,7 @@ async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, outp
 
         console.print(f"\n[bold]Evaluating domain: {d.value} ({len(tasks)} tasks)[/bold]")
         domain_results = []
+        benchmark_start = time.time()
 
         for i, task_obj in enumerate(tasks):
             objective = task_obj.get("objective", task_obj.get("description", ""))
@@ -96,6 +97,10 @@ async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, outp
                 console.print(f"    [red]Error: {exc}[/red]")
 
         if domain_results:
+            benchmark_wall_seconds = time.time() - benchmark_start
+            tasks_completed = sum(1 for r in domain_results for t in r.task_results if t.completed)
+            throughput = (tasks_completed / benchmark_wall_seconds) * 3600 if benchmark_wall_seconds > 0 else 0.0
+
             avg_tcr = sum(r.tcr for r in domain_results) / len(domain_results)
             avg_atl = sum(r.atl for r in domain_results) / len(domain_results)
             memory_stats = await runtime.memory.get_stats()
@@ -107,6 +112,7 @@ async def _run(domain: str, limit: int, enable_rqs: bool, judge_model: str, outp
                 avg_rqs=sum(r.avg_rqs for r in domain_results) / len(domain_results) if enable_rqs else 0.0,
                 mue=memory_stats.get("hit_rate", 0.0),
                 atl_seconds=avg_atl,
+                throughput_per_hour=round(throughput, 1),
             )
             all_results.append(bench.to_dict())
 

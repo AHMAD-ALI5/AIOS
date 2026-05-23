@@ -257,11 +257,16 @@ Then register it in [`src/agents/factory.py`](src/agents/factory.py).
 
 ## 📊 Performance Results
 
-| System | TCR (%) | RQS | MUE | ATL (s) | Throughput |
+| System | TCR (%) | RQS¹ | MUE² | ATL (s) | Throughput³ |
 |---|---|---|---|---|---|
 | Single-Agent | 74.2 | 6.8 | 0.21 | 38.1 | 52.4/h |
 | LangGraph | 87.1 | 7.9 | 0.44 | 49.8 | 68.4/h |
 | **AIOS** | **91.4** | **8.3** | **0.67** | 47.3 | **76.2/h** |
+
+¹ RQS scored by GPT-4o judge (same model family — potential self-evaluation bias).  
+² MUE = STM hit rate at task context retrieval time.  
+³ Throughput = completed subtasks per wall-clock hour during benchmark window.  
+⁴ WMS = fraction of subtasks completed successfully (range [0,1]).
 
 Results from the paper across 180 tasks (RS + SD + ADS domains). See [`docs/results.md`](docs/results.md) for full benchmark results and analysis.
 

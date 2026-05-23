@@ -73,19 +73,19 @@ class WorkflowEvalResult:
     @property
     def wms(self) -> float:
         """
-        Workflow Modularity Score: estimated from number of parallel task pairs.
-        WMS = 1 + (parallelizable_pairs / total_pairs)
+        Workflow Modularity Score: fraction of completed tasks out of total tasks.
+        WMS = completed_tasks / total_tasks
+
+        This measures execution success rate rather than DAG structural modularity.
+        For DAG structural modularity (parallelism ratio), use
+        BenchmarkRunner.compute_dag_parallelism_ratio() which requires the DAG object.
+
+        Range: [0, 1]. Higher is better.
         """
-        n = len(self.task_results)
-        if n <= 1:
-            return 1.0
-        total_pairs = n * (n - 1) / 2
-        completed_pairs = sum(
-            1 for i, a in enumerate(self.task_results)
-            for b in self.task_results[i + 1:]
-            if a.completed and b.completed
-        )
-        return 1.0 + (completed_pairs / total_pairs if total_pairs > 0 else 0)
+        if not self.task_results:
+            return 0.0
+        completed = sum(1 for t in self.task_results if t.completed)
+        return completed / len(self.task_results)
 
 
 @dataclass
@@ -207,6 +207,49 @@ class BenchmarkRunner:
         self.config = config or get_config()
         self.judge = RQSJudge(config) if enable_rqs else None
         self.mue_tracker = MUETracker()
+
+    @staticmethod
+    def compute_dag_parallelism_ratio(dag) -> float:
+        """
+        Structural DAG modularity: fraction of task pairs with no dependency path.
+        Parallelizable pairs / total pairs.
+        Requires DAG object from src.models.
+        """
+        tasks = dag.tasks
+        n = len(tasks)
+        if n <= 1:
+            return 1.0
+        task_ids = [t.id for t in tasks]
+        # Build reachability via transitive closure (Floyd-Warshall on DAG)
+        reaches = {t.id: set() for t in tasks}
+        for t in tasks:
+            for dep in t.dependencies:
+                reaches[dep].add(t.id)
+        # Propagate (topological order)
+        from collections import deque
+        in_deg = {t.id: len(t.dependencies) for t in tasks}
+        q = deque(tid for tid, d in in_deg.items() if d == 0)
+        topo = []
+        temp = dict(in_deg)
+        succ = {t.id: [s.id for s in tasks if t.id in s.dependencies] for t in tasks}
+        while q:
+            node = q.popleft()
+            topo.append(node)
+            for s in succ[node]:
+                temp[s] -= 1
+                if temp[s] == 0:
+                    q.append(s)
+        for node in topo:
+            for s in succ[node]:
+                reaches[node] |= {s} | reaches[s]
+        # Count independent pairs
+        independent = 0
+        total_pairs = n * (n - 1) // 2
+        for i, a in enumerate(task_ids):
+            for b in task_ids[i+1:]:
+                if b not in reaches[a] and a not in reaches[b]:
+                    independent += 1
+        return independent / total_pairs if total_pairs > 0 else 1.0
 
     async def evaluate_workflow(
         self,
