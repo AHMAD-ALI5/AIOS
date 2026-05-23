@@ -85,3 +85,7 @@ htmlcov/
 # Build artifacts
 *.zip
 *.tar.gz
+
+# Evaluation results
+evaluation/results/*.json
+evaluation/results/*.csv

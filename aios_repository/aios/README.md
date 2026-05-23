@@ -210,7 +210,11 @@ Then register it in [`src/agents/factory.py`](src/agents/factory.py).
 | LangGraph | 87.1 | 7.9 | 0.44 | 49.8 | 68.4/h |
 | **AIOS** | **91.4** | **8.3** | **0.67** | 47.3 | **76.2/h** |
 
-Results from the paper across 180 tasks (RS + SD + ADS domains). See [`docs/results.md`](docs/architecture.md) for full analysis.
+Results from the paper across 180 tasks (RS + SD + ADS domains). See [`docs/results.md`](docs/results.md) for full benchmark results and analysis.
+
+> **Note on Performance Results:** The table above reflects results from the full 
+> evaluation benchmark. To reproduce these numbers, see [`docs/results.md`](docs/results.md) 
+> and run `make eval-all`. Requires API keys and running infrastructure.
 
 ---
 
