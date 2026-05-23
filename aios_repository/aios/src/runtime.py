@@ -16,6 +16,8 @@ from src.communication.message_bus import MessageBus
 from src.config import AIOSConfig, get_config
 from src.logging_config import get_logger
 from src.memory.memory_manager import MemoryManager
+from src.monitoring.telemetry import metrics
+import time as _time
 from src.models import (
     AgentType, DAG, TaskDomain, TaskRecord, TaskResult,
     TaskState, WorkflowResultResponse, WorkflowStatusResponse,
@@ -46,10 +48,12 @@ class AIOSRuntime:
         self.collector = CollectorAgent(config=self.config, memory=self.memory)
         self._workflows: dict[str, dict] = {}  # workflow_id → meta
         self._running = False
+        self._dispatch_tasks: set[asyncio.Task] = set()
 
     async def start(self) -> None:
         """Start background services."""
         self._running = True
+        self._dispatch_tasks = set()
         # Start scheduler loop
         asyncio.create_task(self.scheduler.start())
         # Start memory consolidation loop
@@ -60,6 +64,12 @@ class AIOSRuntime:
         """Stop background services."""
         self._running = False
         await self.scheduler.stop()
+        if hasattr(self, '_dispatch_tasks'):
+            for task in list(self._dispatch_tasks):
+                if not task.done():
+                    task.cancel()
+            if self._dispatch_tasks:
+                await asyncio.gather(*self._dispatch_tasks, return_exceptions=True)
         logger.info("AIOS Runtime stopped")
 
     async def submit(
@@ -74,6 +84,8 @@ class AIOSRuntime:
         """
         dag = await self.planner.plan(objective, domain)
         await self.scheduler.register_workflow(dag)
+        metrics.increment("tasks_submitted_total", len(dag.tasks))
+        metrics.set_gauge("active_workflows", len(self._workflows) + 1)
         self._workflows[dag.workflow_id] = {
             "objective": objective,
             "dag": dag,
@@ -205,7 +217,14 @@ class AIOSRuntime:
         Dispatches a TaskRecord to the appropriate execution agent.
         Called by the Scheduler for each READY task.
         """
+        task = asyncio.current_task()
+        if task and hasattr(self, '_dispatch_tasks'):
+            self._dispatch_tasks.add(task)
+            task.add_done_callback(self._dispatch_tasks.discard)
+
         agent_type = record.spec.type
+        metrics.increment("tasks_submitted_total")
+
         if agent_type == AgentType.COLLECTOR:
             # Collector is handled separately at the end
             await self.scheduler.on_task_completed(
@@ -220,13 +239,20 @@ class AIOSRuntime:
             )
             return
 
+        t0 = _time.time()
         agent = create_agent(agent_type, config=self.config, memory=self.memory)
         try:
             result = await agent.execute(record)
+            elapsed = _time.time() - t0
+            metrics.increment("tasks_completed_total")
+            metrics.record_histogram("task_execution_duration_seconds", elapsed)
             await self.scheduler.on_task_completed(
                 record.workflow_id, record.task_id, result
             )
         except Exception as exc:
+            elapsed = _time.time() - t0
+            metrics.increment("tasks_failed_total")
+            metrics.record_histogram("task_execution_duration_seconds", elapsed)
             logger.error(f"Agent execution failed for {record.task_id}: {exc}")
             await self.scheduler.on_task_failed(
                 record.workflow_id, record.task_id, str(exc)

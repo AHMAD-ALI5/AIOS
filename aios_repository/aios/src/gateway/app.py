@@ -8,12 +8,13 @@ import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from src.config import get_config
 from src.logging_config import get_logger, setup_logging
+from src.monitoring.telemetry import metrics as _metrics, broadcaster as _broadcaster
 from src.models import TaskDomain, TaskSubmitRequest, TaskSubmitResponse
 from src.runtime import AIOSRuntime
 
@@ -29,8 +30,11 @@ async def lifespan(app: FastAPI):
     setup_logging(level=cfg.log_level)
     _runtime = AIOSRuntime(config=cfg)
     await _runtime.start()
+    import asyncio
+    asyncio.create_task(_broadcaster.start())
     logger.info("AIOS Gateway ready")
     yield
+    _broadcaster.stop()
     await _runtime.stop()
     logger.info("AIOS Gateway stopped")
 
@@ -57,6 +61,23 @@ def create_app() -> FastAPI:
     @app.get("/v1/health", tags=["system"])
     async def health():
         return {"status": "ok", "version": "0.1.0"}
+
+    @app.get("/v1/metrics", tags=["monitoring"], response_class=PlainTextResponse)
+    async def prometheus_metrics():
+        """Prometheus-format metrics export."""
+        return _metrics.prometheus_text()
+
+    @app.websocket("/ws/monitor")
+    async def websocket_dashboard(websocket: WebSocket):
+        """Real-time metrics dashboard via WebSocket."""
+        await websocket.accept()
+        _broadcaster.add_client(websocket)
+        try:
+            while True:
+                # Keep connection alive; broadcaster pushes data
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            _broadcaster.remove_client(websocket)
 
     @app.post("/v1/tasks", response_model=TaskSubmitResponse, tags=["tasks"],
               status_code=status.HTTP_202_ACCEPTED)

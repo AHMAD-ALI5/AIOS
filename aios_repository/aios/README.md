@@ -194,6 +194,38 @@ Environment variables override YAML values. See [`.env.example`](.env.example).
 
 ---
 
+## 📊 Monitoring
+
+### Prometheus Metrics
+
+Metrics are scraped at `GET /v1/metrics` in Prometheus text format.
+
+```bash
+curl http://localhost:8000/v1/metrics
+```
+
+Key counters:
+- `aios_tasks_submitted_total`
+- `aios_tasks_completed_total`
+- `aios_tasks_failed_total`
+- `aios_task_execution_duration_seconds_avg`
+
+### Real-Time Dashboard (WebSocket)
+
+```javascript
+const ws = new WebSocket('ws://localhost:8000/ws/monitor');
+ws.onmessage = (event) => console.log(JSON.parse(event.data));
+```
+
+Start with full monitoring stack:
+```bash
+docker compose --profile monitoring up -d
+# Prometheus: http://localhost:9090
+# Grafana:    http://localhost:3000  (admin/admin)
+```
+
+---
+
 ## 🧩 Extending AIOS
 
 ### Add a new agent type
