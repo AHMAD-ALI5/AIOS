@@ -143,8 +143,20 @@ aios health
 make test-unit          # Unit tests (no external deps)
 make test-integration   # Integration tests (mocked backends)
 make test-e2e           # End-to-end smoke test
-make test-cov           # All tests with coverage report
+make test-cov           # All tests with coverage report (threshold: 60%)
+make ci-local           # Full CI pipeline locally
 ```
+
+### CI Status
+
+All PRs must pass:
+- ✅ Ruff lint + format
+- ✅ Unit tests (60% coverage minimum)
+- ✅ Integration tests (mocked backends)
+- ✅ E2E smoke (mocked LLM)
+- ✅ Dataset schema validation
+- ✅ Result file integrity check
+- ✅ Docker build
 
 ---
 

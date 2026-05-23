@@ -145,3 +145,13 @@ clean:  ## Clean build artifacts and caches
 	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
 	rm -f .coverage coverage.xml
 	@echo "Cleaned."
+
+ci-local:  ## Run full CI pipeline locally (no Docker)
+	@echo "=== Lint ===" && ruff check src/ tests/ evaluation/ baselines/
+	@echo "=== Smoke ===" && python scripts/smoke_test.py
+	@echo "=== Unit Tests ===" && pytest tests/unit/ -v --cov=src --cov=evaluation --cov-fail-under=60
+	@echo "=== Integration Tests ===" && pytest tests/integration/ -v
+	@echo "=== E2E Tests ===" && pytest tests/e2e/ -v -s
+	@echo "=== Dataset Validation ===" && python scripts/validate_dataset.py
+	@echo "=== Result Integrity ===" && python scripts/check_result_integrity.py
+	@echo "=== All CI checks passed ==="

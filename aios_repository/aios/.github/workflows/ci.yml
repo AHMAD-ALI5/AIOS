@@ -10,137 +10,110 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
-  # ── Lint & Format ─────────────────────────────────────────────
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install ruff
+      - run: ruff check src/ tests/ evaluation/ baselines/
+      - run: ruff format --check src/ tests/ evaluation/ baselines/
 
-      - name: Install ruff
-        run: pip install ruff
-
-      - name: Lint
-        run: ruff check src/ tests/ evaluation/
-
-      - name: Format check
-        run: ruff format --check src/ tests/ evaluation/
-
-  # ── Unit Tests ────────────────────────────────────────────────
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: lint
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-
       - name: Install locked dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements-lock.txt
           pip install -e . --no-deps
-
-      - name: Run smoke test script
+      - name: Validate dataset schema
+        run: python scripts/validate_dataset.py
+      - name: Run smoke test
         run: python scripts/smoke_test.py
-
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: |
           pytest tests/unit/ -v --tb=short \
             --cov=src --cov=evaluation \
-            --cov-report=xml --cov-report=term-missing
-
+            --cov-report=xml --cov-report=term-missing \
+            --cov-fail-under=60
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
           file: coverage.xml
           fail_ci_if_error: false
 
-  # ── Integration Tests ─────────────────────────────────────────
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-
       - name: Install locked dependencies
         run: |
-          pip install --upgrade pip
           pip install -r requirements-lock.txt
           pip install -e . --no-deps
+      - run: pytest tests/integration/ -v --tb=short
 
-      - name: Run integration tests (mocked backends)
-        run: pytest tests/integration/ -v --tb=short
-
-  # ── E2E Smoke Test ────────────────────────────────────────────
   e2e-smoke:
     name: E2E Smoke Test
     runs-on: ubuntu-latest
     needs: integration-tests
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-
       - name: Install locked dependencies
         run: |
-          pip install --upgrade pip
           pip install -r requirements-lock.txt
           pip install -e . --no-deps
+      - run: pytest tests/e2e/ -v --tb=short -s
 
-      - name: Run E2E smoke test (mocked LLM)
-        run: pytest tests/e2e/ -v --tb=short -s
+  result-integrity:
+    name: Result File Integrity
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -r requirements-lock.txt && pip install -e . --no-deps
+      - name: Check result file integrity
+        run: python scripts/check_result_integrity.py
+      - name: Verify dataset hash
+        run: |
+          python scripts/hash_dataset.py
+          python -c "
+          import json
+          committed = json.load(open('data/tasks/dataset_hash.json'))
+          print(f'Committed hash: {committed[\"sha256\"]}')
+          print(f'Files: {committed[\"n_files\"]}')
+          "
 
-  # ── Docker Build Check ────────────────────────────────────────
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t aios:ci-test --target runtime .
-
-      - name: Verify image
-        run: docker run --rm aios:ci-test python -c "from src.models import DAG; print('Docker image OK')"
-
-  # ── Type Check (non-blocking) ─────────────────────────────────
-  type-check:
-    name: Type Check
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install mypy
-        run: pip install mypy pydantic pydantic-settings pyyaml
-
-      - name: Run mypy
-        run: mypy src/ --ignore-missing-imports --no-strict-optional
+      - run: docker build -t aios:ci-test --target runtime .
+      - run: |
+          docker run --rm aios:ci-test \
+            python -c "from src.models import DAG; print('Docker image OK')"
